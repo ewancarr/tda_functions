@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='tda',
-      version='0.2',
+      version='0.3',
       description='Scripts related to TDA project',
       url='NA',
       author='Ewan Carr',
