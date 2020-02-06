@@ -4,8 +4,6 @@ import networkx as nx
 import pygraphviz as pgv
 import statmapper as stm
 
-
-
 def matches(item, comparison):
     comparison = ["{:10.10f}".format(i) for i in comparison]
     return("{:10.10f}".format(item) in comparison)
@@ -87,30 +85,33 @@ def count_features(M):
     return(res)
 
 
-def representative_features(M, confidence, bootstrap):
+def representative_features(M, confidence, bootstrap, inp):
     features = ['downbranch', 'upbranch',
                 'connected_component', 'loop']
     for topo in features:
         # Compute and save representative features
         if 'dgm' not in M.keys():
             M['dgm'], M['bnd'] = {}, {}
-        dgm, bnd = stm.compute_topological_features(M['map'],
-                                                    M['fil'][:, 0],
-                                                    "data", topo)
+        dgm, bnd = stm.compute_topological_features(M=M['map'],
+                                                    func=M['fil'][:, 0],
+                                                    func_type="data",
+                                                    topo_type=topo,
+                                                    threshold=confidence)
         M['dgm'][topo] = dgm
         M['bnd'][topo] = bnd
         # Run bootstrap for representative features
         if 'sdgm' not in M.keys():
             M['sdgm'], M['sbnd'] = {}, {}
-        sdgm, sbnd = stm.evaluate_significance(M['dgm'][topo],
-                                               M['bnd'][topo],
-                                               M['X'],
-                                               M['map'],
-                                               M['fil'],
-                                               M['params'],
-                                               topo,
-                                               confidence,
-                                               bootstrap)
+        sdgm, sbnd = stm.evaluate_significance(dgm=M['dgm'][topo],
+                                               bnd=M['bnd'][topo],
+                                               X=M['X'],
+                                               M=M['map'],
+                                               func=M['fil'],
+                                               params=M['params'],
+                                               topo_type=topo,
+                                               threshold=confidence,
+                                               N=bootstrap,
+                                               input=inp)
         M['sdgm'][topo] = sdgm
         M['sbnd'][topo] = sbnd
     return(M)
