@@ -147,7 +147,11 @@ def graph_features(map, sbnd):
     for type, color in zip(feature_types, [1, 2, 3, 4]):
         for i, feat in enumerate(sbnd[type]):
             for k in feat:
-                nodeinfo[k] = (color, i, str(type[0].upper()) + str(i))
+                if k in nodeinfo.keys():
+                    existing_label = nodeinfo[k][2]
+                    nodeinfo[k] = (color, i, str(type[0].upper()) + str(i) + '/' + existing_label)
+                else:
+                    nodeinfo[k] = (color, i, str(type[0].upper()) + str(i))
 
     # Construct the graph
     G = pgv.AGraph()
@@ -166,7 +170,7 @@ def graph_features(map, sbnd):
                        colorscheme='set34')
         else:
             G.add_node(k, label='')
-    for v in map.mapper_.get_skeleton(2):
+    for v in map.mapper_.get_skeleton(3):
         if len(v[0]) == 2:
             start, end = v[0][0], v[0][1]
             edgecolor = '#EAEAEA'
