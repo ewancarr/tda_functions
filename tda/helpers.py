@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
-import pygraphviz as pgv
 import statmapper as stm
+
 
 def matches(item, comparison):
     comparison = ["{:10.10f}".format(i) for i in comparison]
