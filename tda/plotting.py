@@ -1,9 +1,9 @@
 import numpy as np
+import tda.mapper as tm
 import matplotlib.pyplot as plt
 import networkx as nx
 import pygraphviz as pgv
 import statmapper as stm
-
 
 # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 # ┃                                                                           ┃
@@ -38,12 +38,12 @@ def graph_summary(M):
         ret['max_size'] = np.max(feature_sizes)
         ret['morethan2'] = len([x for x in feature_sizes if x > 2])
         ret['morethan5'] = len([x for x in feature_sizes if x > 5])
+    ret['sizes'] = feature_sizes
     # Get parameter values
     ret['reso'] = M['params']['resolutions'][0]
     ret['gain'] = M['params']['gains'][0]
     ret['eps'] = M['params']['clustering'].get_params()['eps']
     ret['filter'] = M['fil_lab'],
-    ret['X'] = M['X_lab'],
     return({k: [v] for k, v in ret.items()})
 
 
@@ -131,7 +131,7 @@ def to_graphviz(graph, marker=None, size=True, scale=10):
     return(G)
 
 
-def graph_features(map, sbnd):
+def graph_features(bootstrap):
     """
     Draw significant features on a Mapper graph
 
@@ -141,33 +141,49 @@ def graph_features(map, sbnd):
     """
 
     feature_types = ['downbranch', 'upbranch', 'connected_component', 'loop']
+    map = bootstrap['map']
+    sbnd = bootstrap['sbnd']
+    # # Remove duplicates from 'sbnd' (e.g. [7, 7] or [18, 18])
+    for k, v in sbnd.items():
+        sbnd[k] = [list(dict.fromkeys(i)) for i in v]
 
     # Get type and instance for each significant feature
+    memb = tm.identify_membership(bootstrap)
     nodeinfo = {}
-    for type, color in zip(feature_types, [1, 2, 3, 4]):
+    for type, color in zip(feature_types, range(4)):
         for i, feat in enumerate(sbnd[type]):
-            for k in feat:
-                if k in nodeinfo.keys():
-                    existing_label = nodeinfo[k][2]
-                    nodeinfo[k] = (color, i, str(type[0].upper()) + str(i) + '/' + existing_label)
-                else:
-                    nodeinfo[k] = (color, i, str(type[0].upper()) + str(i))
+            fid = i + 1
+            n = memb[type[0].upper() + str(fid)].sum()
+            total = len(memb)
+            prop = n / total
+            # Remove very small/large features
+            if prop >= 0.05 and prop <= 0.95:
+                for k in feat:
+                    if k in nodeinfo.keys():
+                        existing_label = nodeinfo[k][2]
+                        new_label = (existing_label + '/' +
+                                     type[0].upper() + str(i + 1))
+                        nodeinfo[k] = (color, i, new_label)
+                    else:
+                        nodeinfo[k] = (color, i,
+                                       type[0].upper() + str(i + 1))
 
     # Construct the graph
     G = pgv.AGraph()
     G.graph_attr['bgcolor'] = 'gray75'
     G.node_attr['style'] = 'filled'
     G.node_attr['shape'] = 'circle'
-    G.node_attr['fixedsize'] = 'true'
+    G.node_attr['fixedsize'] = 'false'
     G.node_attr['width'] = '0.4'
-    G.node_attr['fontname'] = 'Arial'
+    G.node_attr['fontname'] = 'Calibri'
     # Add nodes
     for k, v in map.node_info_.items():
         if k in nodeinfo.keys():
             G.add_node(k,
-                       fillcolor=nodeinfo[k][0],
-                       label=nodeinfo[k][2],
-                       colorscheme='set34')
+                       fontcolor='black',
+                       fillcolor=nodeinfo[k][1] + 1,
+                       colorscheme='pastel28',
+                       label=nodeinfo[k][2])
         else:
             G.add_node(k, label='')
     for v in map.mapper_.get_skeleton(3):
@@ -177,10 +193,12 @@ def graph_features(map, sbnd):
             w = 1
             if start in nodeinfo.keys() and end in nodeinfo.keys():
                 w = 3
-                edgecolor = str(nodeinfo[start][1]) + ';0.5:' + str(nodeinfo[end][1])
+                edgecolor = (str(nodeinfo[start][1] + 1) +
+                             ';0.5:' +
+                             str(nodeinfo[end][1] + 1))
             G.add_edge(start,
                        end,
-                       colorscheme='paired12',
+                       colorscheme='pastel28',
                        penwidth=w,
                        color=edgecolor)
     return(G)

@@ -9,7 +9,8 @@ from xgboost import XGBClassifier
 def identify_membership(pick):
     """
     Given a set of input parameters, re-run Mapper and create a dataframe that
-    identifies which participants belong to which features.
+    identifies which participants belong to which features. Note that this 
+    function retains significant features only.
     """
     # Re-run Mapper
     mapper = MapperComplex(**pick['params']).fit(pick['X'])
